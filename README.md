@@ -48,7 +48,19 @@ The platform is designed to surface **early warning signals** and **contextual r
 
 ## 🏗️ System Architecture (High Level)
 
-*(Logical system architecture overview)*
+RigSafe AI follows a layered architecture designed for safety-critical environments, where reliability, clarity, and operator support are prioritized.
+
+**1. Sensor & Signal Layer**
+Industrial sensors provide continuous data streams related to gas concentration, vibration, temperature, pressure, and structural behavior.
+
+**2. Edge Intelligence Layer**
+Edge components preprocess sensor data, maintain sliding windows, and perform local anomaly detection. This layer is designed to operate offline with low latency and minimal computational overhead.
+
+**3. Safety Logic & Correlation Layer**
+Detected anomalies and signals are correlated across multiple data sources to identify emerging safety risks and abnormal operating patterns.
+
+**4. Control Room Interface**
+A desktop application presents safety insights to control room operators, prioritizing clarity, context, and actionable information while avoiding alarm overload.
 
 ---
 
