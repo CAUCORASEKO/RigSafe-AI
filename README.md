@@ -87,7 +87,18 @@ Data exchange between the platform and the control room is designed to be resili
 
 ## 🛠️ Technologies Used
 
-*(Technology stack overview)*
+RigSafe AI intentionally uses a focused and pragmatic technology stack suitable for safety-oriented and industrial environments.
+
+| Layer | Technology | Rationale |
+|------|-----------|-----------|
+| Backend API | Python, FastAPI | Clear data models, strong validation, and fast development for safety-focused logic |
+| Edge Intelligence | Python (statistics / ML-ready) | Lightweight, explainable anomaly detection and signal processing |
+| Desktop Application | Electron (planned) | Cross-platform control room interface with rich visualization capabilities |
+| Communication | HTTP / MQTT (planned) | Reliable data ingestion and sensor communication patterns |
+| Data Storage | In-memory (MVP), time-series DB (planned) | Simple MVP storage with a clear path to scalable time-series persistence |
+| Tooling | GitHub, Docker (planned) | Version control, reproducibility, and deployment consistency |
+
+The technology choices prioritize **clarity, reliability, and maintainability** over unnecessary complexity.
 
 ---
 
