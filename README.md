@@ -136,6 +136,11 @@ cd backend
 uvicorn app.main:app --reload
 ```
 
+### Once running, the API will be available at:
+
+```bash
+http://127.0.0.1:8000
+```
 ---
 
 ## 📡 Usage Example
