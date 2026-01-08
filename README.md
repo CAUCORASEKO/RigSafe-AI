@@ -66,7 +66,16 @@ A desktop application presents safety insights to control room operators, priori
 
 ## 🛥️ Onboard & Control Room Architecture
 
-*(Physical deployment and control room overview)*
+RigSafe AI is designed to operate across two primary environments: the offshore platform (edge) and the control room.
+
+**On-Platform (Edge Layer)**  
+Edge components are deployed close to industrial sensors on the platform. This layer handles data ingestion, local buffering, preprocessing, and early anomaly detection. It is designed to operate independently of external connectivity and continue functioning during network interruptions.
+
+**Control Room (Desktop Application)**  
+The control room application aggregates safety signals from the platform, correlates multi-sensor events, and presents prioritized safety insights to operators. The interface focuses on clarity, context, and decision support rather than raw alarm generation.
+
+**Communication Layer**  
+Data exchange between the platform and the control room is designed to be resilient and tolerant to intermittent connectivity. When connectivity is available, historical data and contextual information are synchronized without impacting real-time operation.
 
 ---
 
