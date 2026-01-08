@@ -145,7 +145,35 @@ http://127.0.0.1:8000
 
 ## 📡 Usage Example
 
-*(Safety event ingestion and alert example)*
+The following example demonstrates how a safety-relevant signal can be ingested into the RigSafe AI backend.
+
+### Ingest a safety signal
+
+```bash
+curl -X POST http://127.0.0.1:8000/signals/ingest \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_id": "gas_sensor_module_01",
+    "signal_type": "gas_concentration",
+    "value": 18.4,
+    "unit": "ppm",
+    "location": "compressor_module",
+    "timestamp": "2026-01-06T15:30:00Z"
+  }'
+  ```
+
+### Example response
+
+{
+  "status": "accepted",
+  "signal_id": "a3f21c1e",
+  "risk_level": "elevated",
+  "message": "Gas concentration trend deviates from baseline",
+  "timestamp": "2026-01-06T15:30:01Z"
+}
+
+### This response represents a safety insight, not a critical alarm.
+### Final operational decisions remain with the control room operator.
 
 ---
 
