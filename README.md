@@ -2,22 +2,23 @@
 **Offline-first safety monitoring and anomaly detection platform for offshore oil & gas operations**
 
 ---
-
 ## 🛢️ Overview
 
-RigSafe AI is an open-source, safety-focused monitoring platform designed to assist operators in detecting hazardous conditions and abnormal patterns in offshore oil and gas platforms.
+RigSafe AI is an open-source safety monitoring platform designed for offshore oil and gas operations, with a strong focus on **early hazard detection**, **situational awareness**, and **operator support** in control room environments.
 
-The system combines industrial sensor data, edge intelligence, and a desktop control room application to improve situational awareness and reduce operational risk in safety-critical environments.
+The system ingests data from multiple industrial sensors (gas, vibration, temperature, pressure, structural monitoring) and applies edge-based intelligence to identify abnormal patterns that may indicate emerging safety risks.
+
+RigSafe AI is designed to complement existing safety systems by providing **contextual analysis**, **risk prioritization**, and **offline-first operation**, helping operators reduce alarm fatigue and respond more effectively to critical situations.
 
 ---
 
 ## 🎯 Project Objectives
 
-- Early detection of hazardous and abnormal operating conditions
-- Reduction of alarm fatigue through intelligent prioritization
-- Correlation of multi-sensor data to identify emerging risks
-- Support human operators with contextual, actionable alerts
-- Operate reliably in low-connectivity or offline environments
+- Assist control room operators in identifying hazardous and abnormal conditions at an early stage
+- Reduce alarm overload by prioritizing and contextualizing safety-relevant signals
+- Correlate data from multiple sensor sources to detect emerging risk patterns
+- Provide clear, actionable safety insights without overwhelming the operator
+- Operate reliably in environments with limited or intermittent connectivity
 
 ---
 
