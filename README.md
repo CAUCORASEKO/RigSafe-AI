@@ -104,7 +104,37 @@ The technology choices prioritize **clarity, reliability, and maintainability** 
 
 ## 🚀 Installation & Setup
 
-*(Local development setup instructions)*
+The current MVP focuses on the backend safety logic and signal ingestion layer.
+
+### Prerequisites
+- Python 3.10+
+- Git
+
+### Clone the repository
+
+```bash
+git clone https://github.com/CAUCORASEKO/RigSafe-AI.git
+cd RigSafe-AI
+```
+### Create and activate a virtual environment
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+### Install backend dependencies
+
+```bash
+pip install -r backend/requirements.txt
+```
+
+### Start the backend server
+
+```bash
+cd backend
+uvicorn app.main:app --reload
+```
 
 ---
 
