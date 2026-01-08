@@ -164,6 +164,9 @@ curl -X POST http://127.0.0.1:8000/signals/ingest \
 
 ### Example response
 
+### Example response
+
+```json
 {
   "status": "accepted",
   "signal_id": "a3f21c1e",
@@ -171,8 +174,11 @@ curl -X POST http://127.0.0.1:8000/signals/ingest \
   "message": "Gas concentration trend deviates from baseline",
   "timestamp": "2026-01-06T15:30:01Z"
 }
+```
 
 ### This response represents a safety insight, not a critical alarm.
+### RigSafe AI does not replace certified safety systems (SIS/ESD), but provides early     
+### indicators to support operator decision-making.
 ### Final operational decisions remain with the control room operator.
 
 ---
