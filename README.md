@@ -32,6 +32,20 @@ RigSafe AI is designed to complement existing safety systems by providing **cont
 
 ---
 
+## 🚨 Safety Challenges Addressed
+
+RigSafe AI focuses on safety challenges that are often difficult to detect using traditional threshold-based systems:
+
+- Early-stage gas release patterns (H₂S, CH₄) before critical alarms are triggered
+- Alarm fatigue in control rooms caused by excessive low-priority alerts
+- Gradual vibration and structural stress patterns leading to mechanical failure
+- Abnormal temperature and pressure trends that remain within nominal limits
+- Correlated multi-sensor anomalies indicating emerging or cascading failures
+
+The platform is designed to surface **early warning signals** and **contextual risk indicators**, supporting operators in making informed safety decisions.
+
+---
+
 ## 🏗️ System Architecture (High Level)
 
 *(Logical system architecture overview)*
