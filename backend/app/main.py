@@ -2,6 +2,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional
+from .database import init_db
+from .audit import persist_audit_event
+from .correlation import add_event, check_correlation
 import uuid
 import logging
 import json
@@ -33,6 +36,20 @@ app = FastAPI(
     version="0.1.0"
 )
 
+
+# -------------------------------------------------------------------
+# Application lifecycle
+# -------------------------------------------------------------------
+
+@app.on_event("startup")
+def startup_event():
+    """
+    Initialize database on application startup.
+    Creates SQLite database and safety_events table if they don't exist.
+    """
+    init_db()
+
+
 # -------------------------------------------------------------------
 # Data models
 # -------------------------------------------------------------------
@@ -54,6 +71,8 @@ class SafetyResponse(BaseModel):
     recommended_action: str = Field(..., description="Recommended action based on risk level")
     message: str
     timestamp: datetime
+    correlated_risk_level: Optional[str] = Field(default=None, description="Correlated risk level detected from multi-signal analysis")
+    correlation_reason: Optional[str] = Field(default=None, description="Explanation of the detected correlation")
 
 
 # -------------------------------------------------------------------
@@ -175,15 +194,36 @@ def ingest_signal(signal: SafetySignal):
     signal_id = str(uuid.uuid4())[:8]
     timestamp = datetime.utcnow()
     
-    # Log audit event for elevated and high-risk signals
-    log_safety_audit_event(
-        signal_id=signal_id,
-        signal=signal,
-        risk_level=risk_level,
-        severity_score=severity_score,
-        recommended_action=recommended_action,
-        timestamp=timestamp
+    # Add event to correlation window and check for correlations
+    location = signal.location or ""
+    add_event(location, signal.signal_type, risk_level, timestamp)
+    correlated_risk_level, correlation_reason = check_correlation(
+        location, signal.signal_type, risk_level, timestamp
     )
+    
+    # Log and persist audit events for elevated and high-risk signals
+    if risk_level in ["elevated", "high"]:
+        # Structured JSON logging for machine-readable audit trail
+        log_safety_audit_event(
+            signal_id=signal_id,
+            signal=signal,
+            risk_level=risk_level,
+            severity_score=severity_score,
+            recommended_action=recommended_action,
+            timestamp=timestamp
+        )
+        
+        # Persist to database for long-term audit storage
+        persist_audit_event(
+            signal_id=signal_id,
+            source_id=signal.source_id,
+            signal_type=signal.signal_type,
+            value=signal.value,
+            risk_level=risk_level,
+            severity_score=severity_score,
+            recommended_action=recommended_action,
+            timestamp=timestamp
+        )
 
     return SafetyResponse(
         status="accepted",
@@ -192,5 +232,7 @@ def ingest_signal(signal: SafetySignal):
         severity_score=severity_score,
         recommended_action=recommended_action,
         message=message,
-        timestamp=timestamp
+        timestamp=timestamp,
+        correlated_risk_level=correlated_risk_level,
+        correlation_reason=correlation_reason
     )
