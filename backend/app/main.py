@@ -27,6 +27,7 @@ class SafetyResponse(BaseModel):
     status: str
     signal_id: str
     risk_level: str
+    severity_score: int = Field(..., ge=0, le=100, description="Numeric severity score from 0-100")
     message: str
     timestamp: datetime
 
@@ -54,6 +55,19 @@ def evaluate_risk(signal: SafetySignal) -> tuple[str, str]:
             return "elevated", "Abnormal vibration pattern detected"
 
     return "normal", "Signal within normal operating parameters"
+
+
+def risk_level_to_severity_score(risk_level: str) -> int:
+    """
+    Map risk level to a numeric severity score (0-100).
+    Provides a quantitative measure for downstream systems.
+    """
+    mapping = {
+        "normal": 10,
+        "elevated": 50,
+        "high": 90
+    }
+    return mapping.get(risk_level, 10)  # Default to 10 if unknown risk level
 
 
 # -------------------------------------------------------------------
@@ -87,11 +101,13 @@ def ingest_signal(signal: SafetySignal):
         )
 
     risk_level, message = evaluate_risk(signal)
+    severity_score = risk_level_to_severity_score(risk_level)
 
     return SafetyResponse(
         status="accepted",
         signal_id=str(uuid.uuid4())[:8],
         risk_level=risk_level,
+        severity_score=severity_score,
         message=message,
         timestamp=datetime.utcnow()
     )
