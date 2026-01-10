@@ -81,7 +81,10 @@ Data exchange between the platform and the control room is designed to be resili
 
 ## 📸 Screenshots
 
-*(Backend, simulator, and desktop UI screenshots)*
+### Signal simulator & risk progression
+The simulator reproduces a realistic safety scenario: baseline operation, an elevated risk trend, and a high-risk anomaly event detected in real time.
+
+![Signal simulator risk progression](docs/screenshots/simulator_risk_progression.png)
 
 ---
 
