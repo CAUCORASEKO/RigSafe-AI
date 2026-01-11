@@ -81,10 +81,25 @@ Data exchange between the platform and the control room is designed to be resili
 
 ## 📸 Screenshots
 
-### Signal simulator & risk progression
-The simulator reproduces a realistic safety scenario: baseline operation, an elevated risk trend, and a high-risk anomaly event detected in real time.
+### Signal Simulator — Risk Progression & Escalation
+The deterministic simulator drives a controlled baseline, then steps through elevated risk and escalation states. Each transition is scripted and repeatable to validate downstream behavior and operator response timing.
 
-![Signal simulator risk progression](docs/screenshots/simulator_risk_progression.png)
+![Signal simulator risk progression](docs/screenshots/signal_simulator_risk_progression.png)
+
+### Correlation Engine — Rule-Based Detection
+The correlation engine applies explicit, versioned rules to produce explainable detections from the simulator stream. Every trigger is traceable to inputs, thresholds, and rule outcomes.
+
+![Correlation engine rule-based detection](docs/screenshots/correlation_engine_rule_based_detection.png)
+
+### Backend API — Live Correlated Events Endpoint
+The FastAPI layer exposes correlated events with deterministic payloads suitable for audit logging and replay. Responses preserve provenance so each event can be traced back to simulator signals and applied rules.
+
+![Backend API live correlated events endpoint](docs/screenshots/backend_api_live_correlated_events.png)
+
+### Desktop Application — Control Room Dashboard
+The PySide6 control room dashboard surfaces live status, correlated events, and operator context without embedding rule logic. The UI remains a consumer of audited data, preserving separation of concerns.
+
+![Desktop application control room dashboard](docs/screenshots/desktop_control_room_dashboard.png)
 
 ---
 
