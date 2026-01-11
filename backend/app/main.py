@@ -1,10 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from .database import init_db
-from .audit import persist_audit_event
-from .correlation import add_event, check_correlation
+from .audit import persist_audit_event, persist_correlated_event
+from .correlation import add_event, check_correlation, get_involved_signal_types
 import uuid
 import logging
 import json
@@ -16,19 +16,17 @@ import json
 logger = logging.getLogger("rigsafe.audit")
 logger.setLevel(logging.INFO)
 
-# Avoid duplicate handlers on module reload
 if not logger.handlers:
-    # Configure console handler with JSON-formatted output for structured logging
     handler = logging.StreamHandler()
     handler.setLevel(logging.INFO)
-    
-    # Use a formatter that outputs structured JSON for machine readability
-    formatter = logging.Formatter('%(message)s')
+    formatter = logging.Formatter("%(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-    
-    # Prevent propagation to root logger to avoid duplicate logs
     logger.propagate = False
+
+# -------------------------------------------------------------------
+# FastAPI app
+# -------------------------------------------------------------------
 
 app = FastAPI(
     title="RigSafe AI Backend",
@@ -36,19 +34,13 @@ app = FastAPI(
     version="0.1.0"
 )
 
-
 # -------------------------------------------------------------------
 # Application lifecycle
 # -------------------------------------------------------------------
 
 @app.on_event("startup")
 def startup_event():
-    """
-    Initialize database on application startup.
-    Creates SQLite database and safety_events table if they don't exist.
-    """
     init_db()
-
 
 # -------------------------------------------------------------------
 # Data models
@@ -62,29 +54,37 @@ class SafetySignal(BaseModel):
     location: Optional[str] = Field(default=None, example="compressor_module")
     timestamp: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
-
 class SafetyResponse(BaseModel):
     status: str
     signal_id: str
     risk_level: str
-    severity_score: int = Field(..., ge=0, le=100, description="Numeric severity score from 0-100")
-    recommended_action: str = Field(..., description="Recommended action based on risk level")
+    severity_score: int = Field(..., ge=0, le=100)
+    recommended_action: str
     message: str
     timestamp: datetime
-    correlated_risk_level: Optional[str] = Field(default=None, description="Correlated risk level detected from multi-signal analysis")
-    correlation_reason: Optional[str] = Field(default=None, description="Explanation of the detected correlation")
 
+
+class CorrelatedSafetyEvent(BaseModel):
+    """
+    Internal data model for correlated safety events.
+    
+    Represents a detected multi-signal correlation, not a raw signal.
+    Correlated events are stored separately from raw signals to maintain
+    a clear audit trail of correlation detections for safety-critical
+    operations and post-incident analysis.
+    """
+    event_id: str
+    location: str
+    correlated_risk_level: str
+    correlation_reason: str
+    involved_signal_types: List[str]
+    timestamp: datetime
 
 # -------------------------------------------------------------------
-# Simple risk evaluation logic (MVP)
+# Risk evaluation logic
 # -------------------------------------------------------------------
 
 def evaluate_risk(signal: SafetySignal) -> tuple[str, str]:
-    """
-    Simple, explainable, rule-based risk evaluation.
-    This logic is intentionally transparent and conservative.
-    """
-
     if signal.signal_type == "gas_concentration":
         if signal.value >= 25:
             return "high", "Gas concentration significantly above expected baseline"
@@ -93,38 +93,20 @@ def evaluate_risk(signal: SafetySignal) -> tuple[str, str]:
         else:
             return "normal", "Gas concentration within expected range"
 
-    if signal.signal_type == "vibration":
-        if signal.value >= 8.0:
-            return "elevated", "Abnormal vibration pattern detected"
+    if signal.signal_type == "vibration" and signal.value >= 8.0:
+        return "elevated", "Abnormal vibration pattern detected"
 
     return "normal", "Signal within normal operating parameters"
 
-
 def risk_level_to_severity_score(risk_level: str) -> int:
-    """
-    Map risk level to a numeric severity score (0-100).
-    Provides a quantitative measure for downstream systems.
-    """
-    mapping = {
-        "normal": 10,
-        "elevated": 50,
-        "high": 90
-    }
-    return mapping.get(risk_level, 10)  # Default to 10 if unknown risk level
-
+    return {"normal": 10, "elevated": 50, "high": 90}.get(risk_level, 10)
 
 def risk_level_to_recommended_action(risk_level: str) -> str:
-    """
-    Map risk level to a recommended action.
-    Provides explicit, explainable guidance for operators based on risk assessment.
-    """
-    mapping = {
+    return {
         "normal": "Monitor",
         "elevated": "Investigate trend",
         "high": "Immediate operator attention required"
-    }
-    return mapping.get(risk_level, "Monitor")  # Default to "Monitor" if unknown risk level
-
+    }.get(risk_level, "Monitor")
 
 def log_safety_audit_event(
     signal_id: str,
@@ -134,27 +116,20 @@ def log_safety_audit_event(
     recommended_action: str,
     timestamp: datetime
 ) -> None:
-    """
-    Log structured audit event for safety signals with elevated or high risk levels.
-    Provides traceability for post-incident analysis and regulatory compliance.
-    """
-    if risk_level not in ["elevated", "high"]:
-        return  # Only log elevated and high-risk signals
-    
-    audit_log = {
+    if risk_level not in {"elevated", "high"}:
+        return
+
+    logger.info(json.dumps({
         "signal_id": signal_id,
         "source_id": signal.source_id,
         "signal_type": signal.signal_type,
         "value": signal.value,
+        "location": signal.location,
         "risk_level": risk_level,
         "severity_score": severity_score,
         "recommended_action": recommended_action,
         "timestamp": timestamp.isoformat()
-    }
-    
-    # Log as JSON string for machine-readable structured format
-    logger.info(json.dumps(audit_log, ensure_ascii=False))
-
+    }))
 
 # -------------------------------------------------------------------
 # API endpoints
@@ -164,7 +139,6 @@ def log_safety_audit_event(
 def root():
     return {"message": "RigSafe AI backend is running"}
 
-
 @app.get("/health", tags=["System"])
 def health_check():
     return {
@@ -173,47 +147,61 @@ def health_check():
         "timestamp": datetime.utcnow()
     }
 
-
 @app.post("/signals/ingest", response_model=SafetyResponse, tags=["Signals"])
 def ingest_signal(signal: SafetySignal):
-    """
-    Ingest a safety-relevant signal and return a risk assessment.
-    """
-
     if signal.value < 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Signal value must be non-negative"
-        )
+        raise HTTPException(status_code=400, detail="Signal value must be non-negative")
 
+    # Step 1: Individual risk
     risk_level, message = evaluate_risk(signal)
     severity_score = risk_level_to_severity_score(risk_level)
     recommended_action = risk_level_to_recommended_action(risk_level)
-    
-    # Generate signal_id and timestamp once for consistency
+
     signal_id = str(uuid.uuid4())[:8]
     timestamp = datetime.utcnow()
-    
-    # Add event to correlation window and check for correlations
     location = signal.location or ""
+
+    # Step 2: Correlation window update
     add_event(location, signal.signal_type, risk_level, timestamp)
-    correlated_risk_level, correlation_reason = check_correlation(
+
+    # Step 3: Correlation check
+    correlated_level, correlation_reason = check_correlation(
         location, signal.signal_type, risk_level, timestamp
     )
-    
-    # Log and persist audit events for elevated and high-risk signals
-    if risk_level in ["elevated", "high"]:
-        # Structured JSON logging for machine-readable audit trail
-        log_safety_audit_event(
-            signal_id=signal_id,
-            signal=signal,
-            risk_level=risk_level,
-            severity_score=severity_score,
-            recommended_action=recommended_action,
+
+    # Step 4: Risk escalation (ONLY upwards)
+    # Correlation ONLY elevates risk, never reduces it. This ensures that
+    # multi-signal patterns indicating developing hazardous situations
+    # are always treated as high-priority safety events requiring immediate
+    # operator attention, even if individual signals might appear less severe.
+    if correlated_level == "high":
+        risk_level = "high"
+        severity_score = 90
+        recommended_action = "Immediate operator attention required"
+        message = correlation_reason
+        
+        # Persist correlated event separately from raw signals
+        # Correlated events are stored separately to maintain a clear audit
+        # trail of multi-signal correlation detections for safety-critical
+        # operations, regulatory compliance, and post-incident analysis.
+        correlated_event_id = str(uuid.uuid4())[:8]
+        involved_types = get_involved_signal_types(location, timestamp)
+        persist_correlated_event(
+            event_id=correlated_event_id,
+            location=location,
+            correlated_risk_level=correlated_level,
+            correlation_reason=correlation_reason,
+            involved_signal_types=involved_types,
             timestamp=timestamp
         )
-        
-        # Persist to database for long-term audit storage
+
+    # Step 5: Audit & persistence
+    if risk_level in {"elevated", "high"}:
+        log_safety_audit_event(
+            signal_id, signal, risk_level,
+            severity_score, recommended_action, timestamp
+        )
+
         persist_audit_event(
             signal_id=signal_id,
             source_id=signal.source_id,
@@ -232,7 +220,62 @@ def ingest_signal(signal: SafetySignal):
         severity_score=severity_score,
         recommended_action=recommended_action,
         message=message,
-        timestamp=timestamp,
-        correlated_risk_level=correlated_risk_level,
-        correlation_reason=correlation_reason
+        timestamp=timestamp
     )
+
+
+@app.get("/events/correlated", response_model=List[CorrelatedSafetyEvent], tags=["Events"])
+def get_correlated_events(limit: int = 50):
+    """
+    Retrieve the most recent correlated safety events.
+    
+    Returns correlated events ordered by timestamp descending, intended
+    for control-room desktop application consumption. Correlated events
+    represent multi-signal correlation detections, stored separately
+    from raw signals to maintain a clear audit trail.
+    
+    Args:
+        limit: Maximum number of events to return (default: 50)
+    
+    Returns:
+        List of correlated safety events ordered by timestamp descending
+    """
+    from .database import get_connection
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT
+            event_id,
+            location,
+            correlated_risk_level,
+            correlation_reason,
+            involved_signal_types,
+            timestamp
+        FROM correlated_events
+        ORDER BY timestamp DESC
+        LIMIT ?
+    """, (limit,))
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    events = []
+    for row in rows:
+        event_id, location, correlated_risk_level, correlation_reason, signal_types_str, timestamp_str = row
+        # Parse comma-separated signal types back to list
+        involved_signal_types = signal_types_str.split(",") if signal_types_str else []
+        # Parse timestamp string back to datetime
+        timestamp = datetime.fromisoformat(timestamp_str)
+        
+        events.append(CorrelatedSafetyEvent(
+            event_id=event_id,
+            location=location,
+            correlated_risk_level=correlated_risk_level,
+            correlation_reason=correlation_reason,
+            involved_signal_types=involved_signal_types,
+            timestamp=timestamp
+        ))
+    
+    return events
