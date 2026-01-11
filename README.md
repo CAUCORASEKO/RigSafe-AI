@@ -84,22 +84,35 @@ Data exchange between the platform and the control room is designed to be resili
 ### Signal Simulator — Risk Progression & Escalation
 The deterministic simulator drives a controlled baseline, then steps through elevated risk and escalation states. Each transition is scripted and repeatable to validate downstream behavior and operator response timing.
 
-![Signal simulator risk progression](docs/screenshots/signal_simulator_risk_progression.png)
+![Signal simulator risk progression](docs/screenshots/simulator_risk_progression.png)
 
-### Correlation Engine — Rule-Based Detection
-The correlation engine applies explicit, versioned rules to produce explainable detections from the simulator stream. Every trigger is traceable to inputs, thresholds, and rule outcomes.
+---
 
-![Correlation engine rule-based detection](docs/screenshots/correlation_engine_rule_based_detection.png)
+### Signal Simulator — Correlation Scenarios
+Multiple deterministic scenarios demonstrate how individual signals combine into correlated safety events. Each scenario is designed to exercise a specific correlation rule.
 
-### Backend API — Live Correlated Events Endpoint
-The FastAPI layer exposes correlated events with deterministic payloads suitable for audit logging and replay. Responses preserve provenance so each event can be traced back to simulator signals and applied rules.
+![Signal simulator correlation scenarios](docs/screenshots/signal_simulator_correlation_scenarios.png)
 
-![Backend API live correlated events endpoint](docs/screenshots/backend_api_live_correlated_events.png)
+---
+
+### Correlation Engine — Rule-Based Execution
+Explicit, explainable correlation rules are evaluated against the incoming signal stream. Rule execution and trigger conditions are visible and traceable for audit and validation purposes.
+
+![Correlation engine rule execution](docs/screenshots/signal_simulator_correlation_rules_execution.png)
+
+---
+
+### Backend API — Live Correlated Events
+The FastAPI backend exposes correlated safety events via a deterministic endpoint. All responses preserve provenance for audit logging, replay, and post-incident analysis.
+
+![Backend live correlation logs](docs/screenshots/backend_live_correlation_logs.png)
+
+---
 
 ### Desktop Application — Control Room Dashboard
-The PySide6 control room dashboard surfaces live status, correlated events, and operator context without embedding rule logic. The UI remains a consumer of audited data, preserving separation of concerns.
+The PySide6 desktop control room dashboard displays live correlated events without embedding business logic. The UI remains a passive consumer of audited backend data.
 
-![Desktop application control room dashboard](docs/screenshots/desktop_control_room_dashboard.png)
+![Desktop control room dashboard](docs/screenshots/desktop_app_correlated_events_dashboard.png)
 
 ---
 
