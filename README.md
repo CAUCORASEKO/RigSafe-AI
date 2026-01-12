@@ -10,6 +10,11 @@ The system ingests data from multiple industrial sensors (gas, vibration, temper
 
 RigSafe AI is designed to complement existing safety systems by providing **contextual analysis**, **risk prioritization**, and **offline-first operation**, helping operators reduce alarm fatigue and respond more effectively to critical situations.
 
+RigSafe AI is intentionally deterministic and explainable.
+All safety insights are produced through explicit, auditable rules rather than opaque machine learning models.
+
+This design choice prioritizes operator trust, traceability, and regulatory compatibility in safety-critical environments.
+
 ---
 
 ## 🎯 Project Objectives
@@ -50,16 +55,18 @@ The platform is designed to surface **early warning signals** and **contextual r
 
 RigSafe AI follows a layered architecture designed for safety-critical environments, where reliability, clarity, and operator support are prioritized.
 
-**1. Sensor & Signal Layer**
+![RigSafe AI MVP Architecture](docs/architecture/rigsafe_mvp_architecture.png)
+
+**1. Sensor & Signal Layer**  
 Industrial sensors provide continuous data streams related to gas concentration, vibration, temperature, pressure, and structural behavior.
 
-**2. Edge Intelligence Layer**
+**2. Edge Intelligence Layer**  
 Edge components preprocess sensor data, maintain sliding windows, and perform local anomaly detection. This layer is designed to operate offline with low latency and minimal computational overhead.
 
-**3. Safety Logic & Correlation Layer**
+**3. Safety Logic & Correlation Layer**  
 Detected anomalies and signals are correlated across multiple data sources to identify emerging safety risks and abnormal operating patterns.
 
-**4. Control Room Interface**
+**4. Control Room Interface**  
 A desktop application presents safety insights to control room operators, prioritizing clarity, context, and actionable information while avoiding alarm overload.
 
 ---
@@ -112,6 +119,8 @@ The FastAPI backend exposes correlated safety events via a deterministic endpoin
 ### Desktop Application — Control Room Dashboard
 The PySide6 desktop control room dashboard displays live correlated events without embedding business logic. The UI remains a passive consumer of audited backend data.
 
+The desktop application intentionally avoids embedding safety logic, ensuring that all risk assessment remains centralized, auditable, and version-controlled in the backend.
+
 ![Desktop control room dashboard](docs/screenshots/desktop_app_correlated_events_dashboard.png)
 
 ---
@@ -124,7 +133,8 @@ RigSafe AI intentionally uses a focused and pragmatic technology stack suitable 
 |------|-----------|-----------|
 | Backend API | Python, FastAPI | Clear data models, strong validation, and fast development for safety-focused logic |
 | Edge Intelligence | Python (statistics / ML-ready) | Lightweight, explainable anomaly detection and signal processing |
-| Desktop Application | Electron (planned) | Cross-platform control room interface with rich visualization capabilities |
+| Desktop Application | PySide6 (Qt) | Native control room UI (current MVP) |
+| Alternative UI | Electron (optional) | Possible future cross-platform variant |
 | Communication | HTTP / MQTT (planned) | Reliable data ingestion and sensor communication patterns |
 | Data Storage | In-memory (MVP), time-series DB (planned) | Simple MVP storage with a clear path to scalable time-series persistence |
 | Tooling | GitHub, Docker (planned) | Version control, reproducibility, and deployment consistency |
@@ -211,6 +221,80 @@ curl -X POST http://127.0.0.1:8000/signals/ingest \
 ### Final operational decisions remain with the control room operator.
 
 ---
+
+## 🧩 Design Decisions & Safety Rationale
+
+RigSafe AI is intentionally designed as a **decision-support system**, not as a replacement for certified safety systems (SIS / ESD).
+
+Several architectural and design decisions were made explicitly to align with safety-critical, industrial environments:
+
+### Deterministic & Explainable Logic
+All risk assessments and correlations are produced through explicit, rule-based logic.
+No opaque machine learning models are used in the MVP.
+
+This ensures:
+- Full traceability from input signals to safety insights
+- Predictable system behavior
+- Easier validation, audit, and regulatory review
+- Higher operator trust in control room environments
+
+### Separation of Concerns
+The system enforces a strict separation between:
+- **Signal ingestion & correlation logic** (backend)
+- **Visualization & operator interaction** (desktop application)
+
+The desktop UI contains **no safety logic**.  
+It consumes audited backend data only, preventing hidden or duplicated decision paths.
+
+### Correlation Only Escalates Risk
+Correlation rules are designed to **only increase** risk levels, never reduce them.
+This conservative approach avoids masking individual hazards and aligns with
+safety engineering principles.
+
+### Offline-First Philosophy
+Core logic is designed to operate with limited or intermittent connectivity.
+This reflects real offshore conditions where network availability cannot be assumed.
+
+### Auditability by Design
+All elevated and high-risk events are:
+- Logged in structured format
+- Persisted with timestamps and provenance
+- Replayable for post-incident analysis
+
+This supports safety investigations, learning cycles, and continuous improvement.
+
+---
+
+## 🛣️ Roadmap (Post-MVP)
+
+The current MVP focuses on architectural clarity and safety logic foundations.
+Future iterations may include:
+
+### v0.2 — Operator Interaction & Traceability
+- Operator acknowledgment of correlated events
+- Free-text operator notes attached to safety events
+- Event state lifecycle (new → acknowledged → resolved)
+
+### v0.3 — Rule Management & Governance
+- Versioned correlation rules
+- Rule enable/disable without redeploy
+- Rule execution metadata for audit purposes
+
+### v0.4 — Data & Persistence
+- Time-series database integration
+- Historical trend visualization
+- Exportable audit reports (CSV / JSON)
+
+### v0.5 — Deployment & Integration
+- Containerized backend (Docker)
+- MQTT ingestion for live sensor feeds
+- Role-based access for control room operators
+
+All roadmap items prioritize **clarity, determinism, and operator trust**
+over complexity or automation.
+
+---
+
 
 ## 🚧 Project Status
 
